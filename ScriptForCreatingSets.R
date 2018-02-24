@@ -1,0 +1,27 @@
+# Please download and unzip the JSON version of the dataset from the site https://www.yelp.com/dataset
+library(methods)
+library(jsonlite)
+library(tibble)
+library(stringr)
+library(dplyr)
+#Script for creating a combined set of business and review data for 'restaurant' businesses
+business_set <- stream_in(file("business.json"))
+business_flat<-flatten(business_set)
+business_tbl <- as_data_frame(business_flat)
+business_tbl <- business_tbl %>% select(-starts_with("attributes")) %>% filter(str_detect(categories, "Restaurant"))
+business_tbl <- business_tbl %>% select(-starts_with("categories"))
+business_tbl <- na.omit(business_tbl)
+write.csv(business_tbl,"business_restaurants.csv")
+review_set <- stream_in(file("review.json"))
+review_flat<-flatten(review_set)
+review_tbl <- as_data_frame(review_flat)
+review_tbl <- na.omit(review_tbl)
+write.csv(review_tbl,"review_restaurants.csv")
+ij_rb <- inner_join(review_tbl,business_tbl, by="business_id")
+ij_rb <- na.omit(ij_rb)
+write.csv(ij_rb,"joined_set.csv")
+indexes = sample(1:nrow(ij_rb), size=0.3*nrow(ij_rb))
+train=ij_rb[indexes,]
+test=ij_rb[-indexes,]
+write.csv(train,"review_train.csv")
+write.csv(test,"review_test.csv")
